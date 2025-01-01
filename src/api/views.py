@@ -7,6 +7,9 @@ from lists.models import Todo, TodoList
 from django.http import HttpResponse
 from django.utils import timezone
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 class IsCreatorOrReadOnly(permissions.BasePermission):
     """
@@ -56,3 +59,20 @@ class TodoViewSet(viewsets.ModelViewSet):
         user = self.request.user
         creator = user if user.is_authenticated else None
         serializer.save(creator=creator)
+
+def readiness_check(request):
+    if request.method != 'GET':
+        return HttpResponse("Method not allowed", status=405)
+    try:
+        # Example query to check database connectivity
+        Todo.objects.count()
+        return HttpResponse("Readiness: OK", status=200)
+    except Exception as e:
+        logger.error(f"Readiness check failed: {e}")
+        return HttpResponse("Readiness: FAIL", status=500)
+
+def liveness_check(request):
+    if request.method != 'GET':
+        return HttpResponse("Method not allowed", status=405)
+    # Simple check to ensure the server responds
+    return HttpResponse("Liveness: OK", status=200)
